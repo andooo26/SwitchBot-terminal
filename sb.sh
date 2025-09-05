@@ -79,8 +79,9 @@ if [[ "$1" == "set" ]]; then
 fi
 
 # ON/OFF操作
-DEVICE_NAME=$(jq -r --arg name "$1" '.body.deviceList[] | select(.unique==$name) | .deviceName' "$DEVICES_FILE")
-DEVICE_ID=$(jq -r --arg name "$1" '.body.deviceList[] | select(.unique==$name) | .deviceId' "$DEVICES_FILE")
+DEVICE_NAME=$(jq -r --arg name "$1" '(.body.deviceList[]?, .body.infraredRemoteList[]?)| select(.unique==$name) | .deviceName' "$DEVICES_FILE")
+
+DEVICE_ID=$(jq -r --arg name "$1" '(.body.deviceList[]?, .body.infraredRemoteList[]?) | select(.unique==$name) | .deviceId' "$DEVICES_FILE")
 
 if [ -z "$DEVICE_ID" ] || [ "$DEVICE_ID" == "null" ]; then
   echo "デバイスが見つからない,あるいは変更がありませんでした"
@@ -93,14 +94,14 @@ case "$2" in
       -H "Authorization: $API_KEY" \
       -H "Content-Type: application/json" \
       -d '{"command":"turnOn","parameter":"default","commandType":"command"}' >/dev/null
-    echo "$DEVICE_NAME をONにしました"
+    echo "${DEVICE_NAME}をONにしました"
     ;;
   off)
     curl -s -X POST "$URL/devices/$DEVICE_ID/commands" \
       -H "Authorization: $API_KEY" \
       -H "Content-Type: application/json" \
       -d '{"command":"turnOff","parameter":"default","commandType":"command"}' >/dev/null
-    echo "$DEVICE_NAME をOFFにしました"
+    echo "${DEVICE_NAME}をOFFにしました"
     ;;
   *)
     echo "ON/OFFを指定してください"
