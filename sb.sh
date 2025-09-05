@@ -29,33 +29,40 @@ case "$command" in
         echo "Usage: $0 on <uniqueName>"
         exit 1
     fi
+    DEVICE_NAME=$(jq -r --arg name "$subcommand" '.body.deviceList[] | select(.unique==$name) | .deviceName' "$DEVICES_FILE")
     DEVICE_ID=$(jq -r --arg name "$subcommand" '.body.deviceList[] | select(.unique==$name) | .deviceId' "$DEVICES_FILE")
 
-    if [ -z "$DEVICE_ID" ]; then
+    if [ -z "$DEVICE_ID" ] || [ "$DEVICE_ID" == "null" ]; then
         echo "デバイスが見つかりません: $subcommand"
         exit 1
     fi
     curl -s -X POST "$URL/devices/$DEVICE_ID/commands" \
       -H "Authorization: $API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"command":"turnOn","parameter":"default","commandType":"command"}' | jq '.'
+      -d '{"command":"turnOn","parameter":"default","commandType":"command"}' >/dev/null
+
+    echo "$DEVICE_NAME をONにしました"
     ;;
+
   # offコマンド
   off)
     if [ -z "$subcommand" ]; then
-        echo "Usage: $0 on <uniqueName>"
+        echo "Usage: $0 off <uniqueName>"
         exit 1
     fi
+    DEVICE_NAME=$(jq -r --arg name "$subcommand" '.body.deviceList[] | select(.unique==$name) | .deviceName' "$DEVICES_FILE")
     DEVICE_ID=$(jq -r --arg name "$subcommand" '.body.deviceList[] | select(.unique==$name) | .deviceId' "$DEVICES_FILE")
 
-    if [ -z "$DEVICE_ID" ]; then
+    if [ -z "$DEVICE_ID" ] || [ "$DEVICE_ID" == "null" ]; then
         echo "デバイスが見つかりません: $subcommand"
         exit 1
     fi
     curl -s -X POST "$URL/devices/$DEVICE_ID/commands" \
       -H "Authorization: $API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"command":"turnOff","parameter":"default","commandType":"command"}' | jq '.'
+      -d '{"command":"turnOff","parameter":"default","commandType":"command"}' >/dev/null
+
+    echo "$DEVICE_NAME をOFFにしました"
     ;;
 
   # listコマンド
