@@ -42,10 +42,42 @@ case "$command" in
         echo "API_KEY を $ENV_FILE に保存しました"
         exit 0
         ;;
+
       devices)
-        curl -s -X GET "$URL/devices" \
-        -H "Authorization: $API_KEY" | jq '.body.deviceList |= map(. + {unique: ""}) | .body.infraredRemoteList |= map(. + {unique: ""})' | tee "$DEVICES_FILE"
-        ;;
+          NEW_JSON=$(curl -s -X GET "$URL/devices" -H "Authorization: $API_KEY")
+
+          if [ -f "$DEVICES_FILE" ]; then
+              EXISTING_JSON=$(cat "$DEVICES_FILE")
+          else
+              EXISTING_JSON='{"body":{"deviceList":[],"infraredRemoteList":[]}}'
+          fi
+
+          # jqでマージ,unique保持
+          MERGED_JSON=$(jq -s '
+              # $existing = .[0], $new = .[1]
+              .[0] as $existing | .[1] as $new |
+              {
+                  statusCode: $new.statusCode,
+                  message: $new.message,
+                  body: {
+                      deviceList: (
+                          ($existing.body.deviceList + $new.body.deviceList
+                          | map(. + ({unique: (.unique // "")}))
+                          | unique_by(.deviceId))
+                      ),
+                      infraredRemoteList: (
+                          ($existing.body.infraredRemoteList + $new.body.infraredRemoteList
+                          | map(. + ({unique: (.unique // "")}))
+                          | unique_by(.deviceId))
+                      )
+                  }
+              }
+          ' <(echo "$EXISTING_JSON") <(echo "$NEW_JSON"))
+
+          # 保存
+          echo "$MERGED_JSON" | jq '.' | tee "$DEVICES_FILE"
+          ;;
+
       *)
         echo "正しい引数を指定してください"
         exit 1
